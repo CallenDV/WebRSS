@@ -1,0 +1,89 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <title>WebRSS</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style type="text/css">
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { color: #000080; }
+        input, button { margin: 5px 0; }
+        ul { list-style-type: none; padding: 0; }
+        li { margin: 10px 0; padding: 5px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>WebRSS</h1>
+    
+    <div>
+        <input type="text" id="feedUrl" size="50">
+        <button onclick="addFeed()">Add Feed</button>
+    </div>
+
+    <h2>Feeds</h2>
+    <ul id="feedList"></ul>
+
+    <h2>Articles</h2>
+    <ul id="articleList"></ul>
+
+    <script type="text/javascript">
+        var feeds = [];
+        var currentFeed = null;
+
+        function addFeed() {
+            var url = document.getElementById('feedUrl').value;
+            if (url) {
+                feeds.push({ url: url, title: url });
+                document.getElementById('feedUrl').value = '';
+                displayFeeds();
+            }
+        }
+
+        function displayFeeds() {
+            var list = document.getElementById('feedList');
+            list.innerHTML = '';
+            for (var i = 0; i < feeds.length; i++) {
+                var li = document.createElement('li');
+                li.innerHTML = feeds[i].title + ' <button onclick="loadArticles(' + i + ')">Load Articles</button>';
+                list.appendChild(li);
+            }
+        }
+
+        function loadArticles(index) {
+            currentFeed = feeds[index];
+            var script = document.createElement('script');
+            script.src = 'http://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=10&q=' + encodeURIComponent(currentFeed.url) + '&callback=displayArticles';
+            document.body.appendChild(script);
+        }
+
+        function displayArticles(data) {
+            var list = document.getElementById('articleList');
+            list.innerHTML = '';
+            if (data.responseData && data.responseData.feed && data.responseData.feed.entries) {
+                var entries = data.responseData.feed.entries;
+                for (var i = 0; i < entries.length; i++) {
+                    var li = document.createElement('li');
+                    li.innerHTML = '<b>' + entries[i].title + '</b><br>' +
+                                   '<a href="' + entries[i].link + '" target="_blank">Read</a>';
+                    list.appendChild(li);
+                }
+            } else {
+                list.innerHTML = '<li>Failed to load articles. Please try again.</li>';
+            }
+        }
+
+        if (window.localStorage) {
+            var savedFeeds = localStorage.getItem('webRssFeeds');
+            if (savedFeeds) {
+                feeds = JSON.parse(savedFeeds);
+                displayFeeds();
+            }
+        }
+
+        function saveFeedsToStorage() {
+            if (window.localStorage) {
+                localStorage.setItem('webRssFeeds', JSON.stringify(feeds));
+            }
+        }
+    </script>
+</body>
+</html>
